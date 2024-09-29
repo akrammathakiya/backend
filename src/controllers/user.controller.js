@@ -28,7 +28,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
     
             const userAlreadyExist = await User.findOne(
                 {
-                    $or:[{email,userName}]
+                    $or:[{email},{username:userName}]
                 }
             )
     
@@ -39,6 +39,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
             const avatarLoacalPath = req.files?.avatar[0].path
             //const coverImageLocalPath = req.files?.coverImage[0].path
             let coverImageLocalPath;
+
             if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0 )
             {
                 coverImageLocalPath = req.files.coverImage[0].path
@@ -61,7 +62,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
                 fullName,
                 avtar:avtar.url,
                 coverImage:coverImage?.url || "",
-                userName:userName.toLowerCase()
+                username:userName.toLowerCase()
             })
     
             const user = await User.findById(response._id).select("-password -refreshToken")
@@ -70,7 +71,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
                 throw new ApiError(505,"Something went wrong when creating a user")
             }
     
-            res.status(200).json(
+            return res.
+            status(200)
+            .json(
                 new ApiResponse(200,user,"User is successfully registered!")
             )
         }

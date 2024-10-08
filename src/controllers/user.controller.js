@@ -149,18 +149,18 @@ const logOutUser = asyncHandler(async (req, res) => {
   User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
-      },
+      $unset: {
+        refreshToken: 1,
+      }
     },
     {
-      new: true,
+      new: true
     }
   );
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: true
   };
 
   return res
@@ -326,7 +326,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
   if (!username?.trim()) {
-    throw new ApiError(400, "username is missig");
+    throw new ApiError(400, "username is missing");
   }
 
   const channel = await User.aggregate([
@@ -353,15 +353,16 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
+        // Use $ifNull to provide an empty array if "subscribers" or "subcribedTo" is null or missing
         subscriberCount: {
-          $size: "$subscriber",
+          $size: { $ifNull: ["$subcribers", []] },
         },
         channelSubscribedToCount: {
-          $size: "$subcribedTo",
+          $size: { $ifNull: ["$subcribedTo", []] },
         },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?._id, "$subscriber.subcriber"] },
+            if: { $in: [req.user?._id, "$subcribers.subscriber"] },
             then: true,
             else: false,
           },
@@ -383,7 +384,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   ]);
 
   if (!channel?.length) {
-    throw new ApiError(400, "channel does not exists");
+    throw new ApiError(400, "channel does not exist");
   }
 
   res
@@ -393,14 +394,19 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
-const getUserWatchHistory = asyncHandler(async(req,res)=>{
-  const user = User.aggregate([
+
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+   
+
+  const user = await User.aggregate([
     {
+      // Match the user by their ObjectId
       $match: {
-        _id: mongoose.Types.ObjectId(req.user._id),
-      }
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      },
     },
     {
+      // Lookup videos from the "watchHistory" field
       $lookup: {
         from: "videos",
         localField: "watchHistory",
@@ -418,33 +424,35 @@ const getUserWatchHistory = asyncHandler(async(req,res)=>{
                   $project: {
                     fullName: 1,
                     username: 1,
-                    avatar: 1
-                  }
-                }
-              ]
-            }
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
           },
           {
             $addFields: {
-              owner:{
-                $first: "$owner"
-              }
-            }
-          }
-        ]
-      }
-    }
+              // Take the first owner from the array of owners
+              owner: { $first: "$owner" },
+            },
+          },
+        ],
+      },
+    },
   ]);
+
+  // Return the user's watch history if available, or an empty array if not
   return res
-  .status(200)
-  .json(
-    new ApiResponse(
-      200,
-      user[0].watchHistory,
-      "watch history fetched successfully"
-    )
-  )
-})
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory || [],
+        "Watch history fetched successfully"
+      )
+    );
+});
+
 
 
 

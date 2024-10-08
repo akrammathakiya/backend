@@ -43,6 +43,6 @@ router.route("/update-details").patch(verifyJWT,updateAccountDetails);
 router.route("/avatar").patch(verifyJWT,upload.single("avatar"),updateAvatar);
 router.route("/cover-image").patch(verifyJWT,upload.single("coverImage"),updateCoverImage);
 router.route("/c/:username").get(verifyJWT,getUserChannelProfile);
-router.route("history").get(verifyJWT,getUserWatchHistory);
+router.route("/history").get(verifyJWT,getUserWatchHistory);
 
 export default router;
